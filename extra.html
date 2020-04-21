@@ -1,0 +1,178 @@
+<html>
+<script src="https://d3js.org/d3.v5.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="style.css"/>
+  <body id="extrabody">
+    <svg id="plot"></svg>
+      <div id="tooltip"></div>
+    </body>  
+    <script>
+
+        
+   //get homework grades
+var getHW = function(homework) {
+                return homework.grade;
+            }
+var PengHW = function(penguin)
+           {
+               var hwArray = penguin.homework; 
+               return hwArray.map(getHW);
+           }
+
+
+var initGraph = function(target,penguin)
+{
+    var screen = {width:700, height:600};
+    
+    var margins = {top:60,bottom:50,left:70,right:15};
+    
+    //graph space
+    var graph = 
+    {
+        width:screen.width-margins.left-margins.right,
+        height:screen.height-margins.top-margins.bottom,
+    }
+    
+    //screen size
+    d3.select(target)
+        .attr("width",screen.width)
+        .attr("height",screen.height)
+    
+    //create a group for the graph
+    var g = d3.select(target)
+        .append("g")
+        .classed("graph",true)
+        .attr("transform","translate("+margins.left+","+
+             margins.top+")");
+        
+    //create scales
+    var xScale = d3.scaleLinear()
+        .domain([0,20])
+        .range([0,graph.width])
+          
+    var yScale = d3.scaleLinear()
+        .domain([0,50])
+        .range([graph.height,0]);
+    
+    makeLabels(screen,margins,graph,target);
+    makeAxes(screen,margins,graph,target,xScale,yScale);
+    makeLines(penguin,graph,target,xScale,yScale);
+}
+
+//make labels
+makeLabels = function(screen,margins,graph,target)
+{
+        var labels = d3.select(target)
+        .append("g")
+        .classed("labels",true)
+        
+    labels.append("text")
+        .text("Homework Grades Over Time")
+        .classed("title",true)
+        .attr("text-anchor","middle")
+        .attr("x",margins.left+(graph.width/2))
+        .attr("y",margins.top-10)
+    
+    labels.append("text")
+        .text("Homework Number")
+        .classed("label",true)
+        .attr("text-anchor","middle")
+        .attr("x",margins.left+(graph.width/2))
+        .attr("y",screen.height-5)
+    
+    labels.append("g")
+        .attr("transform","translate(20,"+ 
+              (margins.top+(graph.height/2))+")")
+        .append("text")
+        .text("Grade")
+        .classed("label",true)
+        .attr("text-anchor","middle")
+        .attr("transform","rotate(90)");
+    
+    console.log("labels");
+}
+
+//make axes
+var makeAxes = function(screen,margins,graph,target,xScale,yScale)
+{
+    var xAxis = d3.axisBottom(xScale);
+    var yAxis = d3.axisLeft(yScale);
+    
+    var axes = d3.select(target)
+        .append("g")
+    axes.append("g")
+        .attr("transform","translate("+margins.left+","
+             +(margins.top+graph.height)+")")
+        .call(xAxis)
+    axes.append("g")
+        .attr("transform","translate("+margins.left+","
+             +(margins.top)+")")
+        .call(yAxis)
+}
+  
+//make lines
+var makeLines = function(penguin,graph,target,xScale,yScale)
+{
+    
+    var lineGenerator = d3.line()
+        .x(function(grade,i) { return xScale(i);})
+        .y(function(grade)   { return yScale(grade);})
+    
+   
+    
+    var lines = d3.select(target)
+        .select(".graph")
+        .selectAll("g")
+        .data(penguin)
+        .enter()
+        .append("g")
+        .classed("line",true)
+        .attr("fill","none")
+        .attr("stroke","darkblue")
+        .attr("stroke-width",2)
+        .on("mouseover",function(penguin)
+           {
+            d3.selectAll(".line")
+            .classed("fade",true);
+            
+            d3.select(this)
+            .classed("fade",false)
+            .raise(); 
+            })
+        .on("mouseout",function(penguin)
+           {
+            d3.selectAll(".line")
+            .classed("fade",false);
+        });
+    
+    lines.append("path")
+        .datum(function(penguin) 
+            { return PengHW(penguin);})
+        .attr("d",lineGenerator); 
+}
+
+
+
+//Promise
+var PenguinPromise = d3.json("classData.json");
+
+//success
+var PengSuccess = function(penguin)
+{
+    console.log("Success", penguin);
+    initGraph("#plot",penguin)
+   
+}
+
+//failure
+var PengFail = function(error)
+{
+    console.log("Something went wrong", error);
+}
+
+PenguinPromise.then(PengSuccess,PengFail)
+    
+    
+    </script>
+
+
+</html>

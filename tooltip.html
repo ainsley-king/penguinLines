@@ -1,0 +1,218 @@
+<html>
+<script src="https://d3js.org/d3.v5.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="style.css"/>
+  <body>
+    <svg id="plot"></svg>
+      <div id="tooltip"></div>
+    </body>  
+    <script>
+
+        
+   //get quiz grades
+var getQuiz = function(quiz) {
+                return quiz.grade;
+            }
+var PengQuiz = function(penguin)
+           {
+               var quizArray = penguin.quizes; 
+               return quizArray.map(getQuiz);
+           }
+        
+var initGraph = function(target,penguin)
+{
+    var screen = {width:700, height:600};
+    
+    var margins = {top:50,bottom:50,left:70,right:15};
+    
+    //graph space
+    var graph = 
+    {
+        width:screen.width-margins.left-margins.right,
+        height:screen.height-margins.top-margins.bottom,
+    }
+    
+    //screen size
+    d3.select(target)
+        .attr("width",screen.width)
+        .attr("height",screen.height)
+    
+    //create a group for the graph
+    var g = d3.select(target)
+        .append("g")
+        .classed("graph",true)
+        .attr("transform","translate("+margins.left+","+
+             margins.top+")");
+        
+    //create scales
+    var xScale = d3.scaleLinear()
+        .domain([0,40])
+        .range([0,graph.width])
+ 
+   
+    var maxQuiz = d3.max(penguin,function(penguin)
+    {   
+        return d3.max(penguin.quizes)
+    });
+                      
+    var yScale = d3.scaleLinear()
+        .domain([0,11])
+        .range([graph.height,0]);
+    
+    makeLabels(screen,margins,graph,target);
+    makeAxes(screen,margins,graph,target,xScale,yScale);
+    makeLines(penguin,graph,target,xScale,yScale);
+    makeDots(penguin,screen,margins,graph,target,xScale,yScale);
+}
+
+//make labels
+makeLabels = function(screen,margins,graph,target)
+{
+        var labels = d3.select(target)
+        .append("g")
+        .classed("labels",true)
+        
+    labels.append("text")
+        .text("Quiz Grades Over Time")
+        .classed("title",true)
+        .attr("text-anchor","middle")
+        .attr("x",margins.left+(graph.width/2))
+        .attr("y",margins.top)
+    
+    labels.append("text")
+        .text("Day")
+        .classed("label",true)
+        .attr("text-anchor","middle")
+        .attr("x",margins.left+(graph.width/2))
+        .attr("y",screen.height-5)
+    
+    labels.append("g")
+        .attr("transform","translate(20,"+ 
+              (margins.top+(graph.height/2))+")")
+        .append("text")
+        .text("Grade")
+        .classed("label",true)
+        .attr("text-anchor","middle")
+        .attr("transform","rotate(90)");
+    
+    console.log("labels");
+}
+
+//make axes
+var makeAxes = function(screen,margins,graph,target,xScale,yScale)
+{
+    var xAxis = d3.axisBottom(xScale);
+    var yAxis = d3.axisLeft(yScale);
+    
+    var axes = d3.select(target)
+        .append("g")
+    axes.append("g")
+        .attr("transform","translate("+margins.left+","
+             +(margins.top+graph.height)+")")
+        .call(xAxis)
+    axes.append("g")
+        .attr("transform","translate("+margins.left+","
+             +(margins.top)+")")
+        .call(yAxis)
+}
+  
+//make lines
+var makeLines = function(penguin,graph,target,xScale,yScale)
+{
+    
+    var lineGenerator = d3.line()
+        .x(function(grade,i) { return xScale(i);})
+        .y(function(grade)   { return yScale(grade);})
+    
+   
+    
+    var lines = d3.select(target)
+        .select(".graph")
+        .selectAll("g")
+        .data(penguin)
+        .enter()
+        .append("g")
+        .classed("line",true)
+        .attr("fill","none")
+        .attr("stroke","black")
+        .attr("stroke-width",2)
+        .on("mouseover",makeToolTip)
+        .on("mouseout",function() 
+            {d3.select("#tooltip")
+                    .classed("hidden",true);});
+    
+    lines.append("path")
+        .datum(function(penguin) 
+            { return PengQuiz(penguin);})
+        .attr("d",lineGenerator); 
+}
+
+var makeDots = function(penguin,screen,margins,graph,target,xScale,yScale)
+{
+    var getPos = function(penguin)
+    {
+        return penguin.quizes.index;
+    };
+    
+    d3.select(target)
+        .select(".graph")
+        .selectAll("circle")
+        .data(penguin)
+        .enter()
+        .append("circle")
+        .attr("cx",function(penguin)
+             {
+                return xScale(getPos(penguin));
+            })
+        .attr("cy",function(penguin)
+             {
+                return yScale(PengQuiz(penguin));
+            })
+        .attr("r",5)
+        .attr("fill","red");
+}
+
+//tooltip
+var makeToolTip = function(penguin)
+{
+    d3.select("#tooltip div")
+        .remove();
+
+    
+    var xPosition = d3.event.pageX;
+    var yPosition = d3.event.pageY;
+    
+    
+    var base = d3.select("#tooltip")
+        .classed("hidden",false)
+        .style("top",yPosition+"px")
+        .style("left",xPosition+"px")
+        .append("div")
+    
+    base.append("img")
+        .attr("src","imgs/"+penguin.picture);
+    }
+
+//Promise
+var PenguinPromise = d3.json("classData.json");
+
+//success
+var PengSuccess = function(penguin)
+{
+    console.log("Success", penguin);
+    initGraph("#plot",penguin)
+   
+}
+
+//failure
+var PengFail = function(error)
+{
+    console.log("Something went wrong", error);
+}
+
+PenguinPromise.then(PengSuccess,PengFail)
+    
+    
+    </script>
+
+
+</html>
